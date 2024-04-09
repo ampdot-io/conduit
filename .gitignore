@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/conduit
+conduit.so
+conduit.dylib
+conduit.dll
+conduit.a
+conduit.lib
+conduit-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

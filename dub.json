@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"ampdot"
+	],
+	"copyright": "Copyright © 2024, ampdot",
+	"dependencies": {
+		"vibe-d": "~>0.10.0"
+	},
+	"description": "A universal language model proxy",
+	"license": "LGPL-2.0-or-later",
+	"name": "conduit"
+}
