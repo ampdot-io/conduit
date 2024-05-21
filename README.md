@@ -1,4 +1,18 @@
-## Setup
+# conduit
+conduit is a universal interoperability/compatibility layer for accessing language models and ems built atop them
+
+## Roadmap
+- [x] OpenAI-like support
+ - [x] /v1/completions
+ - [x] /v1/chat/completions
+- [ ] Anthropic support
+- [ ] Gemini support
+- [ ] Precompiled statically-linked binaries via GitHub Actions
+- [ ] Interface for adding and removing models
+- [x] Hot-reloading of models
+- [ ] WASM/JS compatibility library
+
+## Developing
 
 Install Dlang:
 
