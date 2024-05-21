@@ -3,13 +3,21 @@ import std.typecons;
 import errorstrings;
 import std.stdio;
 import std.algorithm;
+import std.file;
+import std.path;
+import vibe.core.path;
+@safe:
+
 
 struct Model
 {
     string endpoint;
     Authset authset;
-    Nullable!string completions_handler;
-    Nullable!string chatcompletions_handler;
+    @optional
+    {
+        Json[string] defaults;
+        Json[string] overrides;
+    }
 }
 
 alias Models = Model[string];
@@ -29,22 +37,34 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         }
         req.method = HTTPMethod.POST;
         // Remove unused parameters for compatibility
-        if (inputReq.json["presence_penalty"].type.isNumericalJsonType
-            && inputReq.json["presence_penalty"].get!double == 0)
+        auto outJson = inputReq.json;
+        foreach (key, value; model.defaults)
         {
-            inputReq.json.remove("presence_penalty");
+            if (key !in outJson)
+            {
+                outJson[key] = value;
+            }
         }
-        if (inputReq.json["frequency_penalty"].type.isNumericalJsonType
-            && inputReq.json["frequency_penalty"].get!double == 0)
+        foreach (key, value; model.overrides)
         {
-            inputReq.json.remove("frequency_penalty");
+            outJson[key] = value;
         }
-        if (inputReq.json["best_of"].type == Json.Type.int_
-            && inputReq.json["best_of"].get!int == 1)
+        if (outJson["presence_penalty"].type.isNumericalJsonType
+            && outJson["presence_penalty"].get!double == 0)
         {
-            inputReq.json.remove("best_of");
+            outJson.remove("presence_penalty");
         }
-        req.writeJsonBody(inputReq.json);
+        if (outJson["frequency_penalty"].type.isNumericalJsonType
+            && outJson["frequency_penalty"].get!double == 0)
+        {
+            outJson.remove("frequency_penalty");
+        }
+        if (outJson["best_of"].type == Json.Type.int_ && inputReq.json["best_of"].get!int
+            == 1)
+        {
+            outJson.remove("best_of");
+        }
+        req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
         outputRes.writeJsonBody(res.readJson);
@@ -66,17 +86,53 @@ struct Conduit
     }
 }
 
+void addConduitRoutes(ref URLRouter router, ref Conduit conduit)
+{
+    router.post("/v1/completions", &conduit.completions);
+}
+
 void main()
 {
     import std.process;
 
-    auto router = new URLRouter;
     Conduit conduit;
-    conduit.models["davinci-002"] = Model("https://api.openai.com/v1/completions",
-            ["Authorization": "Bearer " ~ environment["OPENAI_API_KEY"]]);
-    router.post("/v1/completions", &conduit.completions);
+    alias loadConfig = (path) {
+        if (!path.toString.endsWith(".json")) return;
+        auto models = deserializeJson!Models(path.readFileUTF8);
+        foreach (k, v; models)
+        {
+            conduit.models[k] = v;
+        }
+    };
+    auto configDir = "~/.config/conduit/".expandTilde;
+    auto watcher = watchDirectory(configDir);
+    runTask(() nothrow {
+        try
+        {
+            while (true)
+            {
+                DirectoryChange[] changes;
+                watcher.readChanges(changes, Duration.max);
+                foreach (change; changes)
+                {
+                    if (change.type != DirectoryChangeType.removed)
+                    {
+                        writeln("Loading config!");
+                        loadConfig(change.path);
+                    }
+                }
+            }
+        }
+        catch (Exception e) {}
+    });
+    listDirectory(configDir, (fileInfo) {
+        loadConfig(fileInfo.directory ~ fileInfo.name);
+        return true;
+    });
+    auto router = new URLRouter;
+    router.addConduitRoutes(conduit);
     auto settings = new HTTPServerSettings;
-    settings.port = 8080;
+    settings.port = 6010;
     listenHTTP(settings, router);
     runApplication();
 }
