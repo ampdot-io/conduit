@@ -89,6 +89,7 @@ struct Conduit
 void addConduitRoutes(ref URLRouter router, ref Conduit conduit)
 {
     router.post("/v1/completions", &conduit.completions);
+    router.post("/v1/chat/completions", &conduit.completions);
 }
 
 void main()
