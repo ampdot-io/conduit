@@ -105,13 +105,16 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
+        Json outJson = res.readJson;
+        if (outJson["created"] == Json.undefined)
+        {
+            outJson["created"] = Clock.currTime.toUnixTime!long;
+        }
         final switch (model.type)
         {
         case APIType.openai:
-            outputRes.writeJsonBody(res.readJson);
             break;
         case APIType.anthropicMessages:
-            Json outJson = res.readJson;
             assert(outJson["content"].length == 1);
             string oaiStopReason;
             final switch (outJson["stop_reason"].get!string)
@@ -144,8 +147,8 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     outJson["usage"]["input_tokens"].get!long
                     + outJson["usage"]["output_tokens"].get!long)
             ]);
-            outputRes.writeJsonBody(outJson);
         }
+        outputRes.writeJsonBody(outJson);
     });
 }
 
