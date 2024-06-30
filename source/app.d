@@ -68,12 +68,12 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         }
         // Remove unused parameters for compatibility
         if (outJson["presence_penalty"].type.isNumericalJsonType
-            && outJson["presence_penalty"].get!double == 0)
+            && outJson["presence_penalty"].to!double == 0)
         {
             outJson.remove("presence_penalty");
         }
         if (outJson["frequency_penalty"].type.isNumericalJsonType
-            && outJson["frequency_penalty"].get!double == 0)
+            && outJson["frequency_penalty"].to!double == 0)
         {
             outJson.remove("frequency_penalty");
         }
@@ -87,6 +87,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         case APIType.openai:
             break;
         case APIType.anthropicMessages:
+            // TODO: Set a default prompt if "prompt" parameter is unspecified
             outJson["system"] = model.systemPrompt;
             outJson["messages"] = model.initialMessages ~ [
                 Json([
@@ -95,7 +96,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 ])
             ];
             outJson.remove("prompt");
-            if (outJson["max_tokens"] == Json.undefined)
+            if (outJson["max_tokens"].type() == Json.Type.undefined)
             {
                 outJson["max_tokens"] = 16;
             }
@@ -106,7 +107,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
         Json outJson = res.readJson;
-        if (outJson["created"] == Json.undefined)
+        if (outJson["created"].type() == Json.Type.undefined)
         {
             outJson["created"] = Clock.currTime.toUnixTime!long;
         }
