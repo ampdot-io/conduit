@@ -95,6 +95,12 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     "content": outJson["prompt"]
                 ])
             ];
+	    if (outJson["stop"].type != Json.Type.undefined)
+	    {
+		outJson["stop_sequences"] = outJson["stop"];
+		outJson.remove("stop");
+	    }
+            outJson.remove("logit_bias");
             outJson.remove("prompt");
             if (outJson["max_tokens"].type() == Json.Type.undefined)
             {
@@ -106,6 +112,12 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
+        if (res.statusCode > 299 || res.statusCode < 200) {
+            auto outJson = res.readJson;
+            writeln(outJson);
+            outputRes.writeJsonBody(res.readJson);
+            return;
+        }
         Json outJson = res.readJson;
         if (outJson["created"].type() == Json.Type.undefined)
         {
