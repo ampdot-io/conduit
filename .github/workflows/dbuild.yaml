@@ -1,14 +1,17 @@
 name: Build conduit binaries
 on: [push]
-steps:
-  - uses: actions/checkout@v4
-  - uses: dlang-community/setup-dlang@v2
-    with:
-      compiler: ldc
-  - name: Build
-    run: dub build -b release
-  - name: Release artifacts
-    uses: actions/upload-artifact@v4
-    with:
-      name: conduit
-      path: ./conduit
+jobs:
+  Conduit-Binaries:
+    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc
+      - name: Build
+        run: dub build -b release
+      - name: Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit
+          path: ./conduit
