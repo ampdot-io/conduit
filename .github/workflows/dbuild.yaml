@@ -1,11 +1,11 @@
 name: Build conduit binaries
 on: [push]
 jobs:
-  Conduit-Binaries:
+  Build conduit:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, macos-13]
     steps:
       - uses: actions/checkout@v4
       - uses: dlang-community/setup-dlang@v2
@@ -18,3 +18,18 @@ jobs:
         with:
           name: conduit-${{runner.os}}-${{runner.arch}}
           path: ./conduit
+   Build conduit (windows):
+     runs-on: windows-latest
+     steps:
+      - uses: actions/checkout@v4
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc
+      - name: Build
+        run: dub build -b release
+      - name: Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit.exe
+          path: ./conduit.exe
+
