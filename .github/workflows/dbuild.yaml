@@ -5,9 +5,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-      include:
-        - { os: macos-13, dc: dmd }
+        os: [ubuntu-latest, macos-latest, macos-13]
     steps:
       - uses: actions/checkout@v4
       - uses: dlang-community/setup-dlang@v2
