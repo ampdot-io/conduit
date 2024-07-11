@@ -115,7 +115,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         if (res.statusCode > 299 || res.statusCode < 200) {
             auto outJson = res.readJson;
             writeln(outJson);
-            outputRes.writeJsonBody(res.readJson);
+            outputRes.writeJsonBody(outJson);
             return;
         }
         Json outJson = res.readJson;
