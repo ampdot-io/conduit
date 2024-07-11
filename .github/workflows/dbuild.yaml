@@ -6,8 +6,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        include:
-          - { os: macos-13, dc: dmd }
+      include:
+        - { os: macos-13, dc: dmd }
     steps:
       - uses: actions/checkout@v4
       - uses: dlang-community/setup-dlang@v2
