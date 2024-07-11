@@ -1,7 +1,7 @@
 name: Build conduit binaries
 on: [push]
 jobs:
-  Build conduit:
+  "Build conduit":
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -18,7 +18,7 @@ jobs:
         with:
           name: conduit-${{runner.os}}-${{runner.arch}}
           path: ./conduit
-   Build conduit (windows):
+   "Build conduit (windows)":
      runs-on: windows-latest
      steps:
       - uses: actions/checkout@v4
