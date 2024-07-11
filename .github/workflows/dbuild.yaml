@@ -18,9 +18,9 @@ jobs:
         with:
           name: conduit-${{runner.os}}-${{runner.arch}}
           path: ./conduit
-   "Build conduit (windows)":
-     runs-on: windows-latest
-     steps:
+  "Build conduit (windows)":
+    runs-on: windows-latest
+    steps:
       - uses: actions/checkout@v4
       - uses: dlang-community/setup-dlang@v2
         with:
