@@ -115,7 +115,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         if (res.statusCode > 299 || res.statusCode < 200) {
             auto outJson = res.readJson;
             writeln(outJson);
-            outputRes.writeJsonBody(res.readJson);
+            outputRes.writeJsonBody(outJson);
             return;
         }
         Json outJson = res.readJson;
@@ -201,12 +201,30 @@ struct Conduit
         }
         handleOpenAICompletion(model, req, res);
     }
+
+    void listModels(HTTPServerRequest req, HTTPServerResponse res)
+    {
+        Json jsonModels = Json.emptyObject;
+        jsonModels["object"] = Json("list");
+        jsonModels["data"] = Json.emptyArray;
+        foreach (modelName, model; models)
+        {
+            jsonModels["data"] ~= Json([
+                    "id": Json(modelName),
+                    "object": Json("model"),
+                    "created": Json(0),
+                    "owned_by": Json("conduit")
+            ]);
+        }
+        res.writeJsonBody(jsonModels);
+    }
 }
 
 void addConduitRoutes(ref URLRouter router, ref Conduit conduit)
 {
     router.post("/v1/completions", &conduit.completions);
     router.post("/v1/chat/completions", &conduit.completions);
+    router.get("/v1/models", &conduit.listModels);
 }
 
 void main()
