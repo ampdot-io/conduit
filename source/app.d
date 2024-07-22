@@ -95,11 +95,11 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     "content": outJson["prompt"]
                 ])
             ];
-	    if (outJson["stop"].type != Json.Type.undefined)
-	    {
-		outJson["stop_sequences"] = outJson["stop"];
-		outJson.remove("stop");
-	    }
+            if (outJson["stop"].type != Json.Type.undefined)
+            {
+                outJson["stop_sequences"] = outJson["stop"];
+                outJson.remove("stop");
+            }
             outJson.remove("logit_bias");
             outJson.remove("prompt");
             if (outJson["max_tokens"].type() == Json.Type.undefined)
@@ -112,13 +112,17 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
-        if (res.statusCode > 299 || res.statusCode < 200) {
+        if (res.statusCode > 299 || res.statusCode < 200)
+        {
             auto outJson = res.readJson;
             writeln(outJson);
             outputRes.writeJsonBody(outJson);
             return;
         }
-        Json outJson = res.readJson;
+        const Json inputJson = res.readJson;
+        scope (failure)
+            writeln(inputJson);
+        Json outJson = inputJson;
         if (outJson["created"].type() == Json.Type.undefined)
         {
             outJson["created"] = Clock.currTime.toUnixTime!long;
@@ -128,7 +132,19 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         case APIType.openai:
             break;
         case APIType.anthropicMessages:
-            assert(outJson["content"].length == 1);
+            Json text;
+            if (outJson["content"].length == 0)
+            {
+                text = "";
+            }
+            else if (outJson["content"].length == 1)
+            {
+                text = outJson["content"][0]["text"];
+                if (outJson["content"].length > 1)
+                {
+                    writeln(outJson["content"]);
+                }
+            }
             string oaiStopReason;
             final switch (outJson["stop_reason"].get!string)
             {
@@ -157,8 +173,8 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 "prompt_tokens": outJson["usage"]["input_tokens"],
                 "completion_tokens": outJson["usage"]["output_tokens"],
                 "total_tokens": Json(
-                    outJson["usage"]["input_tokens"].get!long
-                    + outJson["usage"]["output_tokens"].get!long)
+                outJson["usage"]["input_tokens"].get!long
+                + outJson["usage"]["output_tokens"].get!long)
             ]);
         }
         outputRes.writeJsonBody(outJson);
@@ -210,10 +226,10 @@ struct Conduit
         foreach (modelName, model; models)
         {
             jsonModels["data"] ~= Json([
-                    "id": Json(modelName),
-                    "object": Json("model"),
-                    "created": Json(0),
-                    "owned_by": Json("conduit")
+                "id": Json(modelName),
+                "object": Json("model"),
+                "created": Json(0),
+                "owned_by": Json("conduit")
             ]);
         }
         res.writeJsonBody(jsonModels);
