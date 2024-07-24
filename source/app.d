@@ -1,3 +1,4 @@
+static import std.json;
 import std.algorithm;
 import vibe.vibe;
 import std.typecons;
@@ -14,7 +15,8 @@ import std.process; // env variables
 enum APIType
 {
     openai,
-    anthropicMessages
+    anthropicMessages,
+    ollama,
 }
 
 struct Model
@@ -107,19 +109,45 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 outJson["max_tokens"] = 16;
             }
             break;
+        case APIType.ollama:
+            auto prevOutJson = outJson;
+            outJson = Json.emptyObject;
+            outJson["model"] = prevOutJson["model"];
+            outJson["prompt"] = prevOutJson["prompt"];
+            prevOutJson.remove("model");
+            prevOutJson.remove("prompt");
+            outJson["stream"] = false.Json;
+            outJson["raw"] = true.Json;
+            outJson["options"] = prevOutJson;
+            break;
         }
 
         req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
-        if (res.statusCode > 299 || res.statusCode < 200)
+        void passthroughError(string errorKind)
         {
-            auto outJson = res.readJson;
-            writeln(outJson);
-            outputRes.writeJsonBody(outJson);
+            auto bodyContents = res.bodyReader.readAllUTF8;
+            writeln(errorKind, " ", "error: ", bodyContents);
+            outputRes.writeBody(bodyContents);
             return;
         }
-        const Json inputJson = res.readJson;
+
+        if (res.statusCode > 299 || res.statusCode < 200)
+        {
+            passthroughError("Non-OK status code");
+            return;
+        }
+        Json inputJson;
+        try
+        {
+            inputJson = res.readJson;
+        }
+        catch (std.json.JSONException)
+        {
+            passthroughError("Failed to parse JSON");
+            return;
+        }
         scope (failure)
             writeln(inputJson);
         Json outJson = inputJson;
@@ -173,9 +201,20 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 "prompt_tokens": outJson["usage"]["input_tokens"],
                 "completion_tokens": outJson["usage"]["output_tokens"],
                 "total_tokens": Json(
-                outJson["usage"]["input_tokens"].get!long
-                + outJson["usage"]["output_tokens"].get!long)
+                    outJson["usage"]["input_tokens"].get!long
+                    + outJson["usage"]["output_tokens"].get!long)
             ]);
+            break;
+        case APIType.ollama:
+            outJson["choices"] = [
+                Json([
+                    "text": outJson["response"],
+                    "index": 0.Json,
+                    "logprobs": null.Json,
+                    "stop_reason": "unknown".Json,
+                
+            ])];
+            break;
         }
         outputRes.writeJsonBody(outJson);
     });
