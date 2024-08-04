@@ -9,6 +9,9 @@ import std.file;
 import std.path;
 import vibe.core.path;
 import std.process; // env variables
+import std.ascii;
+import std.random;
+import std.range;
 
 @safe:
 
@@ -51,6 +54,10 @@ bool isAnthropicModel(string modelName)
 void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerResponse outputRes)
 {
     requestHTTP(model.endpoint, (scope req) {
+        foreach (key; inputReq.headers.byKey)
+        {
+            req.headers[key] = inputReq.headers[key];
+        }
         foreach (key; model.authset.byKey)
         {
             req.headers[key] = model.authset[key];
@@ -119,9 +126,14 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
             outJson["stream"] = false.Json;
             outJson["raw"] = true.Json;
             outJson["options"] = prevOutJson;
+            if (outJson["options"]["max_tokens"].type != Json.Type.undefined)
+            {
+                outJson["options"]["num_predict"] = outJson["options"]["max_tokens"];
+                outJson["options"].remove("max_tokens");
+            }
+
             break;
         }
-
         req.writeJsonBody(outJson);
     }, (scope res) {
         outputRes.statusCode = res.statusCode;
@@ -215,6 +227,10 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 
             ])];
             break;
+        }
+        if (outJson["id"].type == Json.Type.undefined)
+        {
+            outJson["id"] = "duit-" ~ generateRandomString(30);
         }
         outputRes.writeJsonBody(outJson);
     });
@@ -330,4 +346,13 @@ void main()
     settings.port = 6010;
     listenHTTP(settings, router);
     runApplication();
+}
+
+string generateRandomString(size_t length) {
+    string result;
+    foreach (_; 0 .. length) {
+        char randomChar = letters[uniform(0, $)];
+        result ~= randomChar;
+    }
+    return result;
 }
