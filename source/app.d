@@ -54,10 +54,6 @@ bool isAnthropicModel(string modelName)
 void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerResponse outputRes)
 {
     requestHTTP(model.endpoint, (scope req) {
-        foreach (key; inputReq.headers.byKey)
-        {
-            req.headers[key] = inputReq.headers[key];
-        }
         foreach (key; model.authset.byKey)
         {
             req.headers[key] = model.authset[key];
