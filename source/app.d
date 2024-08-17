@@ -199,7 +199,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
             }
             outJson["choices"] = [
                 Json([
-                    "text": outJson["content"][0]["text"],
+                    "text": text,
                     "index": 0.Json,
                     "logprobs": null.Json,
                     "stop_reason": oaiStopReason.Json
