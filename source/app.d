@@ -132,10 +132,10 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
             {
                 if ((i % 2) == 0)
                 {
-                    contentBlocks ~= Json([
+                    contentBlocks ~= [Json([
                         "type": Json("text"),
                         "content": Json(section)
-                    ]);
+                    ])];
                 }
                 else
                 {
@@ -160,10 +160,10 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     ]);
                 }
             }
-            outJson["messages"] = model.initialMessages ~ Json([
+            outJson["messages"] = model.initialMessages ~ [Json([
                 "role": Json(model.promptRole),
                 "content": Json(contentBlocks)
-            ]);
+            ])];
             if (outJson["stop"].type != Json.Type.undefined)
             {
                 outJson["stop_sequences"] = outJson["stop"];
