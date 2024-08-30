@@ -163,7 +163,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     string asBase64 = Base64.encode(range);
                     messages ~= [
                         Json([
-                            "role": "user",
+                            "role": Json("user"),
                             "content": Json([Json([
                                 "type": Json("image"),
                                 "source": Json([
@@ -243,6 +243,9 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         final switch (model.type)
         {
         case APIType.openai:
+	    if (outJson["choices"].type() == Json.Type.undefined || outJson["choices"].length == 0) {
+		writeln(outJson);
+	    }
             break;
         case APIType.anthropicMessages:
             Json text;
