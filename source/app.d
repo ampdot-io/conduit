@@ -8,10 +8,15 @@ import std.algorithm;
 import std.file;
 import std.path;
 import vibe.core.path;
+import std.net.curl;
 import std.process; // env variables
 import std.ascii;
 import std.random;
 import std.range;
+import std.base64;
+import std.string;
+import std.array;
+import std.regex;
 
 @safe:
 
@@ -49,6 +54,32 @@ bool isNumericalJsonType(Json.Type jsontype)
 bool isAnthropicModel(string modelName)
 {
     return modelName.startsWith("claude");
+}
+
+string detectFileType(const ubyte[] data)
+{
+    if (data.length < 4)
+    {
+        return "Unknown - not enough data";
+    }
+    if (data.startsWith(cast(ubyte[])[0xFF, 0xD8, 0xFF]))
+    {
+        return "image/jpeg";
+    }
+    else if (data.startsWith(cast(ubyte[])[0x89, 0x50, 0x4E, 0x47]))
+    {
+        return "image/png";
+    }
+    else if (data.startsWith(cast(ubyte[])[0x47, 0x49, 0x46, 0x38]))
+    {
+        return "image/gif";
+    }
+    else if (data.startsWith(cast(ubyte[])[0x52, 0x49, 0x46, 0x46])
+            && data[8 .. 12].equal(cast(ubyte[])[0x57, 0x45, 0x42, 0x50]))
+    {
+        return "image/webp";
+    }
+    return "Unknown file type";
 }
 
 void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerResponse outputRes)
@@ -94,12 +125,45 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         case APIType.anthropicMessages:
             // TODO: Set a default prompt if "prompt" parameter is unspecified
             outJson["system"] = model.systemPrompt;
-            outJson["messages"] = model.initialMessages ~ [
-                Json([
-                    "role": Json(model.promptRole),
-                    "content": outJson["prompt"]
-                ])
-            ];
+            Json[] contentBlocks;
+            auto text = (outJson["prompt"].to!string).splitter(
+                regex(`<\|(?:begin|end)_of_img_url\|>`));
+            foreach (i, section; text.enumerate)
+            {
+                if ((i % 2) == 0)
+                {
+                    contentBlocks ~= Json([
+                        "type": Json("text"),
+                        "content": Json(section)
+                    ]);
+                }
+                else
+                {
+                    ubyte[] range;
+                    try
+                    {
+                        range = get!(AutoProtocol, ubyte)(section);
+                    }
+                    catch (CurlException e)
+                    {
+                        // TODO: Handle this error
+                        return;
+                    }
+                    string asBase64 = Base64.encode(range);
+                    contentBlocks ~= Json([
+                        "type": Json("image"),
+                        "source": Json([
+                            "type": Json("base64"),
+                            "media_type": Json(detectFileType(range)),
+                            "data": Json(asBase64)
+                        ])
+                    ]);
+                }
+            }
+            outJson["messages"] = model.initialMessages ~ Json([
+                "role": Json(model.promptRole),
+                "content": Json(contentBlocks)
+            ]);
             if (outJson["stop"].type != Json.Type.undefined)
             {
                 outJson["stop_sequences"] = outJson["stop"];
@@ -344,9 +408,11 @@ void main()
     runApplication();
 }
 
-string generateRandomString(size_t length) {
+string generateRandomString(size_t length)
+{
     string result;
-    foreach (_; 0 .. length) {
+    foreach (_; 0 .. length)
+    {
         char randomChar = letters[uniform(0, $)];
         result ~= randomChar;
     }
