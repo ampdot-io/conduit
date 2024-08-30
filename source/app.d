@@ -133,12 +133,14 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
             {
                 if ((i % 2) == 0)
                 {
-                    messages ~= [
-                        Json([
-                            "role": Json(model.promptRole),
-                            "content": Json(section)
-                        ])
-                    ];
+                    if (section != "") {
+                        messages ~= [
+                            Json([
+                                "role": Json(model.promptRole),
+                                "content": Json(section)
+                            ])
+                        ];
+                    }
                 }
                 else
                 {
