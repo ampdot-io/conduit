@@ -126,29 +126,32 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         case APIType.anthropicMessages:
             // TODO: Set a default prompt if "prompt" parameter is unspecified
             outJson["system"] = model.systemPrompt;
-            Json[] contentBlocks;
+            Json[] messages;
             auto text = (outJson["prompt"].to!string).splitter(
                 regex(`<\|(?:begin|end)_of_img_url\|>`));
             foreach (i, section; text.enumerate)
             {
                 if ((i % 2) == 0)
                 {
-                    contentBlocks ~= [Json([
-                        "type": Json("text"),
-                        "text": Json(section)
-                    ])];
+                    messages ~= [
+                        Json([
+                            "role": Json(model.promptRole),
+                            "content": Json(section)
+                        ])
+                    ];
                 }
                 else
                 {
                     ubyte[] range;
-                    ubyte[] downloadURL(string url) {
+                    ubyte[] downloadURL(string url)
+                    {
                         return std.net.curl.get!(AutoProtocol, ubyte)(url);
 
                     }
+
                     try
                     {
-                        range = 
-                            memoize!downloadURL(section);
+                        range = memoize!downloadURL(section);
                     }
                     catch (CurlException e)
                     {
@@ -156,20 +159,22 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                         return;
                     }
                     string asBase64 = Base64.encode(range);
-                    contentBlocks ~= Json([
-                        "type": Json("image"),
-                        "source": Json([
-                            "type": Json("base64"),
-                            "media_type": Json(detectFileType(range)),
-                            "data": Json(asBase64)
+                    messages ~= [
+                        Json([
+                            "role": "user",
+                            "content": Json([Json([
+                                "type": Json("image"),
+                                "source": Json([
+                                    "type": Json("base64"),
+                                    "media_type": Json(detectFileType(range)),
+                                    "data": Json(asBase64)
+                                ])
+                            ])])
                         ])
-                    ]);
+                    ];
                 }
             }
-            outJson["messages"] = model.initialMessages ~ [Json([
-                "role": Json(model.promptRole),
-                "content": Json(contentBlocks)
-            ])];
+            outJson["messages"] = model.initialMessages ~ messages;
             if (outJson["stop"].type != Json.Type.undefined)
             {
                 outJson["stop_sequences"] = outJson["stop"];
@@ -290,7 +295,9 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     "index": 0.Json,
                     "logprobs": null.Json,
                     "stop_reason": "unknown".Json,
+
                 
+
             ])];
             break;
         }
