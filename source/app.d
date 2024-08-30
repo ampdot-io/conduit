@@ -133,7 +133,7 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
             {
                 if ((i % 2) == 0)
                 {
-                    if (section != "") {
+                    if (!section.isWhite) {
                         messages ~= [
                             Json([
                                 "role": Json(model.promptRole),
