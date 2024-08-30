@@ -17,6 +17,7 @@ import std.base64;
 import std.string;
 import std.array;
 import std.regex;
+import std.functional;
 
 @safe:
 
@@ -134,15 +135,20 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                 {
                     contentBlocks ~= [Json([
                         "type": Json("text"),
-                        "content": Json(section)
+                        "text": Json(section)
                     ])];
                 }
                 else
                 {
                     ubyte[] range;
+                    ubyte[] downloadURL(string url) {
+                        return std.net.curl.get!(AutoProtocol, ubyte)(url);
+
+                    }
                     try
                     {
-                        range = get!(AutoProtocol, ubyte)(section);
+                        range = 
+                            memoize!downloadURL(section);
                     }
                     catch (CurlException e)
                     {
