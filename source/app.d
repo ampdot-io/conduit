@@ -126,14 +126,14 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
         case APIType.anthropicMessages:
             // TODO: Set a default prompt if "prompt" parameter is unspecified
             outJson["system"] = model.systemPrompt;
-            Json[] messages;
+            Json[] messages = model.initialMessages;
             auto text = (outJson["prompt"].to!string).splitter(
                 regex(`<\|(?:begin|end)_of_img_url\|>`));
             foreach (i, section; text.enumerate)
             {
                 if ((i % 2) == 0)
                 {
-                    if (!section.isWhite) {
+                    if (section.length != 0 && !section.all!isWhite) {
                         messages ~= [
                             Json([
                                 "role": Json(model.promptRole),
@@ -148,12 +148,10 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                     ubyte[] downloadURL(string url)
                     {
                         return std.net.curl.get!(AutoProtocol, ubyte)(url);
-
                     }
-
                     try
                     {
-                        range = memoize!downloadURL(section);
+                        range = memoize!(downloadURL, 1000u)(section);
                     }
                     catch (CurlException e)
                     {
@@ -161,22 +159,34 @@ void handleOpenAICompletion(Model model, HTTPServerRequest inputReq, HTTPServerR
                         return;
                     }
                     string asBase64 = Base64.encode(range);
-                    messages ~= [
-                        Json([
-                            "role": Json("user"),
-                            "content": Json([Json([
-                                "type": Json("image"),
-                                "source": Json([
-                                    "type": Json("base64"),
-                                    "media_type": Json(detectFileType(range)),
-                                    "data": Json(asBase64)
-                                ])
-                            ])])
-                        ])
-                    ];
+		    if (messages.length > 0 && messages[$ - 1]["role"].to!string == "user") {
+			    messages[$ - 1]["content"] ~= [Json([
+					"type": Json("image"),
+					"source": Json([
+					    "type": Json("base64"),
+					    "media_type": Json(detectFileType(range)),
+					    "data": Json(asBase64)
+					])
+			    ])];
+		    } else {
+			    messages ~= [
+				Json([
+				    "role": Json("user"),
+				    "content": Json([Json([
+					"type": Json("image"),
+					"source": Json([
+					    "type": Json("base64"),
+					    "media_type": Json(detectFileType(range)),
+					    "data": Json(asBase64)
+					])
+				    ])])
+				])
+			    ];
+		    }
+
                 }
             }
-            outJson["messages"] = model.initialMessages ~ messages;
+            outJson["messages"] = messages;
             if (outJson["stop"].type != Json.Type.undefined)
             {
                 outJson["stop_sequences"] = outJson["stop"];
@@ -334,7 +344,10 @@ struct Conduit
             model.initialMessages = [
                 Json([
                     "role": Json("user"),
-                    "content": Json("<cmd>cat <untitled.txt</cmd>")
+                    "content": Json([Json([
+			    "type": "text".Json,
+			    "text": "<cmd>cat <untitled.txt</cmd>".Json
+		    ])])
                 ])
             ];
             model.endpoint = "https://api.anthropic.com/v1/messages";
