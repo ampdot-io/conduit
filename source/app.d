@@ -37,6 +37,7 @@ struct Model
         Authset authset;
         Json[string] defaults;
         Json[string] overrides;
+	bool secret = false;
         // Chat-model specific
         string systemPrompt;
         Json[] initialMessages;
@@ -371,12 +372,14 @@ struct Conduit
         jsonModels["data"] = Json.emptyArray;
         foreach (modelName, model; models)
         {
-            jsonModels["data"] ~= Json([
-                "id": Json(modelName),
-                "object": Json("model"),
-                "created": Json(0),
-                "owned_by": Json("conduit")
-            ]);
+	    if (!model.secret) {
+		    jsonModels["data"] ~= Json([
+			"id": Json(modelName),
+			"object": Json("model"),
+			"created": Json(0),
+			"owned_by": Json("conduit")
+		    ]);
+	    }
         }
         res.writeJsonBody(jsonModels);
     }
