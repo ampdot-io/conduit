@@ -3,11 +3,11 @@ conduit is a universal interoperability/compatibility layer for accessing langua
 
 ## Roadmap
 - [x] OpenAI-like support
- - [x] /v1/completions
- - [x] /v1/chat/completions
-- [ ] Anthropic support
-- [ ] Gemini support
-- [ ] Precompiled statically-linked binaries via GitHub Actions
+  - [x] /v1/completions
+  - [x] /v1/chat/completions
+- [x] Anthropic support
+- [x] Gemini support
+- [x] Precompiled statically-linked binaries via GitHub Actions
 - [ ] Interface for adding and removing models
 - [x] Hot-reloading of models
 - [ ] WASM/JS compatibility library
