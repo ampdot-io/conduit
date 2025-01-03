@@ -22,7 +22,7 @@ On Linux and macOS, rename the resultant file to `conduit`
 ./conduit
 ```
 
-Create a config file at `~/config/conduit/models.json`.
+Create a config file at `~/.config/conduit/models.json`.
 
 ### Example configurations
 Mixtral 8x22B via together.ai:
